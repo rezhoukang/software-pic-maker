@@ -53,14 +53,14 @@ defineExpose({refresh,requestDelete,selectedFolder,reveal})
 </script>
 <template>
  <section class="file-explorer" aria-label="文件管理">
-  <div class="files-heading"><span>文件管理</span><button @click="refresh(false)" :disabled="loading" aria-label="刷新目录">刷新</button><button @click="emit('create',selectedFolder)" aria-label="新增文件">新建</button></div>
+  <div class="files-heading"><button class="icon-button file-manager-collapse" title="收起文件管理" aria-label="收起文件管理" aria-expanded="true" @click="emit('collapse')"><PanelLeftClose :size="18" /></button><button @click="refresh(false)" :disabled="loading" aria-label="刷新目录">刷新</button><button @click="emit('create',selectedFolder)" aria-label="新增文件">新建</button></div>
   <div class="file-filters">
    <NSelect class="file-category" v-model:value="category" :options="categoryOptions" :virtual-scroll="false" role="combobox" aria-label="分类筛选" />
    <NInput v-model:value="search" placeholder="搜索文件或文件夹" :input-props="{'aria-label':'搜索文件或文件夹'}" clearable />
   </div>
   <nav class="file-tree-scroll" aria-label="主目录文件树" @contextmenu.self.prevent="contextRoot">
    <ul role="tree" aria-label="主目录">
-    <li role="none"><div class="file-tree-root-row"><button class="file-tree-row root-row" role="treeitem" aria-level="1" :aria-expanded="rootOpen" :title="tree.root" data-entry-path="" data-kind="folder" @click="rootOpen=!rootOpen;selectedFolder=''" @contextmenu.prevent.stop="contextRoot"><span class="tree-disclosure">{{rootOpen?'▾':'▸'}}</span><span>主目录</span></button><button class="icon-button file-manager-collapse" title="收起文件管理" aria-label="收起文件管理" aria-expanded="true" @click="emit('collapse')"><PanelLeftClose :size="18" /></button></div>
+    <li role="none"><button class="file-tree-row root-row" role="treeitem" aria-level="1" :aria-expanded="rootOpen" :title="tree.root" data-entry-path="" data-kind="folder" @click="rootOpen=!rootOpen;selectedFolder=''" @contextmenu.prevent.stop="contextRoot"><span class="tree-disclosure">{{rootOpen?'▾':'▸'}}</span><span>主目录</span></button>
      <ul v-if="rootOpen" role="group"><FileTreeNode v-for="entry in filtered" :key="entry.path" :entry="entry" :active-path="activePath" :expanded="visibleExpanded" :level="2" @open="emit('open',$event,false)" @toggle="toggle" @menu="showMenu" /></ul>
     </li>
    </ul>
