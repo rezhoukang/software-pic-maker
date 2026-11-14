@@ -1,4 +1,4 @@
-package main
+package mcpserver
 
 import (
 	"context"
@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"tuxu/internal/core"
-	"tuxu/internal/exportbundle"
-	"tuxu/internal/raster"
-	"tuxu/internal/workspace"
+	"ezruantu/internal/core"
+	"ezruantu/internal/exportbundle"
+	"ezruantu/internal/raster"
+	"ezruantu/internal/workspace"
 )
 
 var diagramTypes = []string{"er", "table", "usecase", "flowchart", "sequence", "class", "architecture", "structure"}

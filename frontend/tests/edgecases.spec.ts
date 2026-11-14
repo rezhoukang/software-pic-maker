@@ -25,7 +25,7 @@ test('invalid diagram cannot be saved or replace valid recovery',async({page})=>
  const downloads:string[]=[];page.on('download',d=>downloads.push(d.suggestedFilename()))
  await page.goto('/');await expect(page.locator('.x6-node').first()).toBeVisible()
  await page.getByRole('textbox',{name:'图表名称',exact:true}).fill('有效副本');await page.getByRole('textbox',{name:'图表名称',exact:true}).press('Tab')
- await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('tuxu-session-v1')||'{}').project?.diagrams?.[0]?.title)).toBe('有效副本')
+ await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('ezruantu-session-v1')||'{}').project?.diagrams?.[0]?.title)).toBe('有效副本')
  await page.locator('.x6-node[data-cell-id="reader"]').click()
  const fields=page.getByRole('textbox',{name:'字段名称',exact:true});await fields.nth(1).fill('读者编号');await fields.nth(1).press('Tab')
  await expect(page.locator('.canvas-error')).toContainText('字段重复')
@@ -71,7 +71,7 @@ test('empty relations and monochrome survive export and reload',async({page})=>{
  await modal.locator('.n-select').nth(1).click();await page.locator('.n-base-select-option:visible').filter({hasText:/^SVG/}).click()
  const promise=page.waitForEvent('download');await modal.getByRole('button',{name:'导出',exact:true}).click();const download=await promise
  const p='test-results/monochrome.svg';await download.saveAs(p);const svg=fs.readFileSync(p,'utf8');expect(svg).toContain('#333333');expect(svg).not.toContain('#63758f')
- await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('tuxu-session-v1')||'{}').project?.diagrams?.[0]?.view?.theme)).toBe('mono')
+ await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('ezruantu-session-v1')||'{}').project?.diagrams?.[0]?.view?.theme)).toBe('mono')
  await page.reload();await expect(page.locator('.x6-node').first()).toBeVisible();await expect(page.locator('.diagram-stats')).toContainText('0 条关系')
 })
 

@@ -13,7 +13,7 @@ import (
 	"time"
 	"unicode"
 
-	"tuxu/internal/core"
+	"ezruantu/internal/core"
 )
 
 const Internal = ".ezbitu"

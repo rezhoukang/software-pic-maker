@@ -1,18 +1,17 @@
-package main
+package mcpserver
 
 import (
 	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"ezruantu/internal/core"
+	"ezruantu/shared"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"tuxu/internal/core"
-	"tuxu/shared"
 )
 
 type Empty struct{}
@@ -43,7 +42,7 @@ func newServer(workspace string) (*mcp.Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := mcp.NewServer(&mcp.Implementation{Name: "ezbitu", Version: "0.2.14"}, &mcp.ServerOptions{Instructions: projectInstructions})
+	s := mcp.NewServer(&mcp.Implementation{Name: "ezruantu", Version: "0.2.14"}, &mcp.ServerOptions{Instructions: projectInstructions})
 	mcp.AddTool(s, &mcp.Tool{Name: "get_diagram_schema", Description: "Get the shared JSON Schema for all supported diagram types. All changes must preserve valid references and stable IDs.", Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true}}, func(ctx context.Context, req *mcp.CallToolRequest, args Empty) (*mcp.CallToolResult, any, error) {
 		var schema any
 		json.Unmarshal(shared.DiagramSchema, &schema)
@@ -146,22 +145,27 @@ func outputPath(root, name string) (string, error) {
 	}
 	return path, nil
 }
-func main() {
-	exe, _ := os.Executable()
-	workspace := flag.String("workspace", filepath.Join(filepath.Dir(exe), "data"), "Directory used for MCP file operations")
-	flag.Parse()
+
+// Run serves MCP over inherited stdin/stdout without starting the desktop UI.
+func Run(ctx context.Context, args []string, defaultWorkspace string) error {
+	flags := flag.NewFlagSet("EZ软图 --mcp", flag.ContinueOnError)
+	workspace := flags.String("workspace", defaultWorkspace, "Directory used for MCP file operations")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	if flags.NArg() != 0 {
+		return fmt.Errorf("unexpected MCP arguments: %v", flags.Args())
+	}
 	abs, err := filepath.Abs(*workspace)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	if err = os.MkdirAll(abs, 0755); err != nil {
-		log.Fatal(err)
+		return err
 	}
 	server, err := newServer(abs)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-	if err = server.Run(context.Background(), &mcp.StdioTransport{}); err != nil {
-		log.Fatal(err)
-	}
+	return server.Run(ctx, &mcp.StdioTransport{})
 }

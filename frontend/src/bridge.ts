@@ -9,7 +9,7 @@ const api = () => window.go!.main.App
 export async function loadSession(): Promise<Session> {
   if (desktop()) return api().GetSession()
   let recoveryError = ''
-  const stored = localStorage.getItem('tuxu-session-v1')
+  const stored = localStorage.getItem('ezruantu-session-v1') ?? localStorage.getItem('tuxu-session-v1')
   if (stored) { try { const s = JSON.parse(stored); await validatePreviewProject(s.project); return { ...s, path: typeof s.path === 'string' ? s.path : '', recovered: true } } catch (e) { recoveryError = e instanceof Error ? e.message : String(e) } }
   return { project: { schema_version: '1.0', name: '图书借阅系统', diagrams: clone(library) as Diagram[] }, path: '', recovered: false, recovery_error: recoveryError }
 }
@@ -24,7 +24,7 @@ export async function renderDiagram(d: Diagram): Promise<RenderResult> {
   return r.json()
 }
 let recoveryRevision = 0
-export async function recover(project: Project, path: string, fileRevision='') { if (desktop()) return api().SaveWorkspaceRecovery ? api().SaveWorkspaceRecovery(JSON.stringify(project),path,fileRevision) : api().SaveRecovery(JSON.stringify(project), path); const revision = ++recoveryRevision; await validatePreviewProject(project); if (revision === recoveryRevision) localStorage.setItem('tuxu-session-v1', JSON.stringify({ project, path,revision:fileRevision })) }
+export async function recover(project: Project, path: string, fileRevision='') { if (desktop()) return api().SaveWorkspaceRecovery ? api().SaveWorkspaceRecovery(JSON.stringify(project),path,fileRevision) : api().SaveRecovery(JSON.stringify(project), path); const revision = ++recoveryRevision; await validatePreviewProject(project); if (revision === recoveryRevision) localStorage.setItem('ezruantu-session-v1', JSON.stringify({ project, path,revision:fileRevision })) }
 export function markDirty(dirty: boolean) { if (desktop()) void api().SetDirty(dirty) }
 export function onCloseRequested(callback: () => void): () => void { return desktop() ? EventsOn('app:close-requested', callback) : () => {} }
 export async function confirmQuit() { if (desktop()) await api().ConfirmQuit() }
@@ -45,7 +45,7 @@ export const importWorkspaceProject=(project:Project)=>{const raw=JSON.stringify
 export async function saveProject(project: Project, path: string, saveAs = false): Promise<string> {
   if (desktop()) return api().SaveProject(JSON.stringify(project), path, saveAs)
   await validatePreviewProject(project)
-  download(JSON.stringify(project, null, 2), project.name + '.tuxu.json', 'application/json'); return 'browser-download'
+  download(JSON.stringify(project, null, 2), project.name + '.ezruantu.json', 'application/json'); return 'browser-download'
 }
 export async function openProject(): Promise<Session | undefined> {
   if (desktop()) { const s = await api().OpenProject(); return s.path ? s : undefined }
@@ -58,7 +58,7 @@ export async function exportDiagram(d: Diagram, format: string, svg: string): Pr
   if (format === 'png') { download(Uint8Array.from(atob(png), c => c.charCodeAt(0)), d.title + '.png', 'image/png'); return 'browser-download' }
   const r = await fetch('/api/export?format=' + format, { method: 'POST', body: JSON.stringify(d) }); if (!r.ok) throw new Error(await r.text()); download(await r.text(), d.title + '.' + format, format === 'svg' ? 'image/svg+xml' : format === 'json' ? 'application/json' : 'application/xml'); return 'browser-download'
 }
-export async function environment() { if (desktop()) return api().GetEnvironment(); return { version: '0.2.14', mcp_path: 'EZ软图/tuxu-mcp.exe', data_dir: 'EZ软图/data', mcp_ready: false } }
+export async function environment() { if (desktop()) return api().GetEnvironment(); return { version: '0.2.14', mcp_path: 'EZ软图/EZ软图.exe', data_dir: 'EZ软图/data', mcp_ready: false } }
 export async function copyText(text: string) { if (desktop()) return api().CopyText(text); return navigator.clipboard.writeText(text) }
 function download(content: string | Uint8Array, name: string, type: string) { const blob = new Blob([content as BlobPart], { type }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000) }
 async function svgToPng(svg: string): Promise<string> {

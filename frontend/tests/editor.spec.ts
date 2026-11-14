@@ -49,7 +49,7 @@ test('all four exports and project save/open', async ({ page }) => {
   if(format==='PNG')expect(bytes.subarray(0,8).toString('hex')).toBe('89504e470d0a1a0a')
   if(format==='draw.io')expect(bytes.toString()).toContain('<mxfile')
  }
- const p=page.waitForEvent('download');await page.getByRole('button',{name:'导出项目副本',exact:true}).click();const download=await p;const target=path.resolve('test-results/project.tuxu.json');await download.saveAs(target)
+ const p=page.waitForEvent('download');await page.getByRole('button',{name:'导出项目副本',exact:true}).click();const download=await p;expect(download.suggestedFilename()).toMatch(/\.ezruantu\.json$/);const target=path.resolve('test-results/project.ezruantu.json');await download.saveAs(target)
  const content=JSON.parse(fs.readFileSync(target,'utf8'));content.name='打开的测试项目';fs.writeFileSync(target,JSON.stringify(content))
  const chooser=page.waitForEvent('filechooser');await page.getByRole('button',{name:'导入项目',exact:true}).click();await (await chooser).setFiles(target);await expect(page.locator('.file-breadcrumb')).toContainText('打开的测试项目')
 })

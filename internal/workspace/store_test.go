@@ -2,12 +2,12 @@ package workspace
 
 import (
 	"encoding/json"
+	"ezruantu/internal/core"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
-	"tuxu/internal/core"
 )
 
 func testStore(t *testing.T) *Store {

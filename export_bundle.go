@@ -1,9 +1,9 @@
 package main
 
 import (
+	"ezruantu/internal/exportbundle"
 	"fmt"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
-	"tuxu/internal/exportbundle"
 )
 
 func (a *App) ExportBundle(name string, files []exportbundle.File, folder, zipped bool) ([]string, error) {

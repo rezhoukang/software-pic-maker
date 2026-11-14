@@ -1,6 +1,6 @@
 # EZ软图
 
-Wails 2 + Go + Vue 3 + TypeScript 的本地软件设计绘图应用，带独立 stdio MCP 服务。
+Wails 2 + Go + Vue 3 + TypeScript 的本地软件设计绘图应用，内置 stdio MCP 服务（同一 EXE 使用 `--mcp` 参数启动）。
 
 ## 开始
 
@@ -27,7 +27,7 @@ npm.cmd ci --prefix frontend
 | `frontend/src` | Vue 编辑界面、Naive UI 控件、X6 画布 |
 | `internal/core` | Schema/语义校验、图种布局、SVG/draw.io 导出 |
 | `shared` | 桌面和 MCP 共用 Schema、八种示例 |
-| `cmd/mcp` | 独立 MCP 服务，官方 Go SDK |
+| `internal/mcpserver` | 内置 MCP 服务，官方 Go SDK |
 | `cmd/preview` | 仅用于浏览器开发测试的本机 HTTP 接口 |
 | `scripts` | 开发、构建与资源生成脚本 |
 
@@ -40,7 +40,7 @@ JSON 是项目源数据。Go 根据图种生成统一场景，X6 呈现节点并
 ## 测试
 
 ```powershell
-go test ./internal/core ./cmd/mcp
+go test ./internal/core ./internal/mcpserver
 go vet ./...
 ```
 

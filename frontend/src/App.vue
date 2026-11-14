@@ -57,7 +57,7 @@ const selectedItem = computed(() => { const id = selected.value.startsWith('$att
 const selectedRelation = computed(() => allRelations.value.find(r => r.id === selected.value || '$relation:' + r.id === selected.value || '$edge:' + r.id + ':a' === selected.value || '$edge:' + r.id + ':b' === selected.value))
 const validationIssues = computed(() => result.value?.validation.issues ?? [])
 const nodeWord = computed(() => ({ er: '实体', table: '表', usecase: '用例', flowchart: '步骤', sequence: '参与者', class: '类', architecture: '组件', structure: '模块' })[active.value.type])
-const mcpConfig = computed(() => JSON.stringify({ mcpServers: { tuxu: { command: env.value.mcp_path || '请填写 tuxu-mcp.exe 的绝对路径', args: ['--workspace', env.value.data_dir ? env.value.data_dir : '请填写项目工作目录'] } } }, null, 2))
+const mcpConfig = computed(() => JSON.stringify({ mcpServers: { ezruantu: { command: env.value.mcp_path || '请填写 EZ软图.exe 的绝对路径', args: ['--mcp', '--workspace', env.value.data_dir ? env.value.data_dir : '请填写项目工作目录'] } } }, null, 2))
 
 function notify(text: string, error = false) { toast.value = { text, error }; clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.value = null, error ? 6000 : 3000) }
 function errorText(e: unknown) { return e instanceof Error ? e.message : String(e) }
@@ -266,7 +266,7 @@ onBeforeUnmount(() => { clearTimeout(toastTimer); clearTimeout(recoveryTimer); c
 
   <AppDialog v-model:show="mcpModal" title="MCP 接入" class="mcp-modal" :width="640">
     <p class="dialog-description">将以下配置添加到支持 MCP 的客户端，或点击“复制 Skill”将完整指引交给 Agent。</p>
-    <NAlert :type="env.mcp_ready?'success':'info'" :show-icon="false">{{ env.mcp_ready ? '独立 MCP 程序已就绪' : '打包后提供独立 MCP 程序' }}</NAlert>
+    <NAlert :type="env.mcp_ready?'success':'info'" :show-icon="false">{{ env.mcp_ready ? '内置 MCP 已就绪，与桌面应用共用同一个 EXE' : 'MCP 内置于 EZ软图.exe，发布后可直接接入' }}</NAlert>
     <pre class="config-code">{{ mcpConfig }}</pre>
     <p class="dialog-description">支持项目文件夹、图表新建与修改、版本校验，以及 PNG / SVG / draw.io / JSON 批量导出。可在桌面窗口关闭后独立运行，PNG 需本机安装 Edge 或 Chrome。</p>
     <template #footer><NButton @click="mcpModal=false">关闭</NButton><NButton @click="copy(mcpConfig)">复制配置</NButton><NButton type="primary" @click="copySkill">复制 Skill</NButton></template>

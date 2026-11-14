@@ -10,17 +10,17 @@ import zipfile
 
 root = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
-parser.add_argument('--binary', type=Path, default=root / 'build/bin/tuxu-mcp.exe')
+parser.add_argument('--binary', type=Path, default=root / 'build/bin/EZ软图-build.exe')
 parser.add_argument('--skip-png', action='store_true')
 args = parser.parse_args()
 if not args.binary.is_file():
-    raise SystemExit('Build MCP first: go build -o build/bin/tuxu-mcp.exe ./cmd/mcp')
+    raise SystemExit('Build EZ软图 first: ./scripts/build.ps1')
 base = root / 'test-results/mcp'
 base.mkdir(parents=True, exist_ok=True)
 with tempfile.TemporaryDirectory(prefix='stdio-', dir=base) as temporary:
     out = Path(temporary).resolve()
     assert out.parent == base.resolve()
-    p = subprocess.Popen([str(args.binary.resolve()), '--workspace', str(out)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8', creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+    p = subprocess.Popen([str(args.binary.resolve()), '--mcp', '--workspace', str(out)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8', creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
     stdin, stdout = p.stdin, p.stdout
     assert stdin is not None and stdout is not None, 'MCP stdio pipes were not created'
     lines = queue.Queue()
@@ -47,6 +47,7 @@ with tempfile.TemporaryDirectory(prefix='stdio-', dir=base) as temporary:
         return result.get('structuredContent')
     try:
         init = request('initialize', {'protocolVersion':'2025-11-25','capabilities':{},'clientInfo':{'name':'ezruantu-project-smoke','version':'1'}})
+        assert init['serverInfo']['name'] == 'ezruantu'
         assert 'export_project' in init.get('instructions', '')
         stdin.write(json.dumps({'jsonrpc':'2.0','method':'notifications/initialized'}) + '\n'); stdin.flush()
         names = {tool['name'] for tool in request('tools/list', {})['tools']}

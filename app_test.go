@@ -3,11 +3,22 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"ezruantu/internal/core"
 	"os"
 	"path/filepath"
 	"testing"
-	"tuxu/internal/core"
 )
+
+func TestMCPEnvironmentUsesDesktopExecutable(t *testing.T) {
+	exe, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	env := NewApp().GetEnvironment()
+	if env.MCPPath != exe || !env.MCPReady || env.DataDir != projectDataDirectory(exe) {
+		t.Fatalf("MCP must use the desktop executable and shared workspace: %+v", env)
+	}
+}
 
 func TestCloseConfirmation(t *testing.T) {
 	app := NewApp()
@@ -103,7 +114,7 @@ func TestProjectDataRootAndPortableDataRoot(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			root := t.TempDir()
 			os.WriteFile(filepath.Join(root, "wails.json"), []byte(`{"name":"`+name+`"}`), 0644)
-			os.WriteFile(filepath.Join(root, "go.mod"), []byte("module tuxu"), 0644)
+			os.WriteFile(filepath.Join(root, "go.mod"), []byte("module ezruantu"), 0644)
 			if got := projectDataDirectory(filepath.Join(root, "dist", "release", name+".exe")); got != filepath.Join(root, "data") {
 				t.Fatal("source build did not share project data", got)
 			}

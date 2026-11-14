@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"encoding/json"
+	"ezruantu/internal/core"
 	"fmt"
 	"mime"
 	"net/http"
@@ -9,7 +10,6 @@ import (
 	"regexp"
 	"strings"
 	"sync"
-	"tuxu/internal/core"
 )
 
 // Browser preview uses the exact same filesystem store as the native bridge.

@@ -1,15 +1,29 @@
-package main
+package mcpserver
 
 import (
 	"context"
 	"encoding/json"
+	"ezruantu/internal/core"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
-	"tuxu/internal/core"
 )
+
+func TestRunRejectsInvalidArgumentsBeforeCreatingWorkspace(t *testing.T) {
+	for _, args := range [][]string{{"--unknown"}, {"unexpected"}} {
+		root := filepath.Join(t.TempDir(), "data")
+		err := Run(context.Background(), args, root)
+		if err == nil || (!strings.Contains(err.Error(), "flag provided") && !strings.Contains(err.Error(), "unexpected")) {
+			t.Fatalf("invalid MCP arguments were accepted: %v", err)
+		}
+		if _, err := os.Stat(root); !os.IsNotExist(err) {
+			t.Fatal("invalid invocation created a workspace", err)
+		}
+	}
+}
 
 func TestMCPRoundTrip(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)

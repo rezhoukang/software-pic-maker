@@ -1,4 +1,4 @@
-package main
+package mcpserver
 
 import (
 	"archive/zip"
@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
+	"ezruantu/internal/core"
+	"ezruantu/internal/raster"
+	"ezruantu/internal/workspace"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"tuxu/internal/core"
-	"tuxu/internal/raster"
-	"tuxu/internal/workspace"
 )
 
 func mcpClient(t *testing.T, root string) (context.Context, *mcp.ClientSession) {

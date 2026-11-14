@@ -6,8 +6,8 @@ import (
 	"strings"
 	"sync"
 
+	"ezruantu/shared"
 	"github.com/google/jsonschema-go/jsonschema"
-	"tuxu/shared"
 )
 
 type Point struct {

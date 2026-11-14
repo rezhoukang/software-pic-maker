@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
+	"ezruantu/internal/core"
+	"ezruantu/internal/workspace"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
-	"tuxu/internal/core"
-	"tuxu/internal/workspace"
 )
 
 type App struct {
@@ -72,9 +72,8 @@ func (a *App) ConfirmQuit() {
 func (a *App) SetDirty(dirty bool) { a.mu.Lock(); a.dirty = dirty; a.mu.Unlock() }
 func (a *App) GetEnvironment() Environment {
 	exe, _ := os.Executable()
-	mcpPath := filepath.Join(filepath.Dir(exe), "tuxu-mcp.exe")
-	_, err := os.Stat(mcpPath)
-	return Environment{a.dataDir, mcpPath, err == nil, "0.2.14"}
+	_, err := os.Stat(exe)
+	return Environment{a.dataDir, exe, err == nil, "0.2.14"}
 }
 func (a *App) GetSession() Session {
 	s := Session{Project: core.Project{SchemaVersion: "1.0", Name: "图书借阅系统", Diagrams: core.Templates()}}
@@ -137,12 +136,12 @@ func (a *App) SaveProject(raw, path string, saveAs bool) (string, error) {
 		return "", err
 	}
 	if saveAs || path == "" {
-		path, err = runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{Title: "保存EZ软图项目", DefaultFilename: safeName(p.Name) + ".tuxu.json", Filters: []runtime.FileFilter{{DisplayName: "EZ软图项目", Pattern: "*.tuxu.json"}}})
+		path, err = runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{Title: "保存EZ软图项目", DefaultFilename: safeName(p.Name) + ".ezruantu.json", Filters: []runtime.FileFilter{{DisplayName: "EZ软图项目", Pattern: "*.ezruantu.json"}}})
 		if err != nil || path == "" {
 			return "", err
 		}
 		if !strings.HasSuffix(strings.ToLower(path), ".json") {
-			path += ".tuxu.json"
+			path += ".ezruantu.json"
 		}
 	}
 	p.UpdatedAt = time.Now().Format(time.RFC3339)

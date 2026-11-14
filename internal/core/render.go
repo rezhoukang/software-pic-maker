@@ -49,7 +49,7 @@ func AtomicWrite(path string, data []byte) error {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}
-	f, err := os.CreateTemp(dir, ".tuxu-*")
+	f, err := os.CreateTemp(dir, ".ezruantu-*")
 	if err != nil {
 		return err
 	}
