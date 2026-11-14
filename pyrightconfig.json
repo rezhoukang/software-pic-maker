@@ -1,0 +1,5 @@
+{
+  "include": ["scripts"],
+  "typeCheckingMode": "basic",
+  "reportUnusedImport": "error"
+}

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "EZ软图",
+  "outputfilename": "EZ软图",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": { "name": "EZ软图", "email": "" },
+  "info": { "companyName": "EZ软图", "productName": "EZ软图", "productVersion": "0.2.14", "copyright": "", "comments": "软件设计与毕设绘图工作台" }
+}

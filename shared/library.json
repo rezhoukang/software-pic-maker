@@ -1,0 +1,682 @@
+[
+  {
+    "schema_version": "1.0",
+    "id": "er-example",
+    "type": "er",
+    "title": "图书借阅 · 概念 ER 图",
+    "description": "用实体、属性和联系描述业务。图书按单本实体书理解，借阅联系涵盖历史记录。",
+    "model": {
+      "entities": [
+        {
+          "id": "reader",
+          "name": "读者",
+          "fields": [
+            {
+              "name": "读者编号",
+              "type": "bigint",
+              "primary": true
+            },
+            {
+              "name": "姓名",
+              "type": "varchar(100)"
+            },
+            {
+              "name": "联系电话",
+              "type": "varchar(20)"
+            }
+          ]
+        },
+        {
+          "id": "book",
+          "name": "图书",
+          "fields": [
+            {
+              "name": "图书编号",
+              "type": "bigint",
+              "primary": true
+            },
+            {
+              "name": "书名",
+              "type": "varchar(100)"
+            },
+            {
+              "name": "馆藏状态",
+              "type": "varchar(20)"
+            }
+          ]
+        },
+        {
+          "id": "category",
+          "name": "分类",
+          "fields": [
+            {
+              "name": "分类编号",
+              "type": "bigint",
+              "primary": true
+            },
+            {
+              "name": "分类名称",
+              "type": "varchar(100)"
+            }
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "id": "borrows",
+          "source": "reader",
+          "target": "book",
+          "label": "借阅",
+          "source_cardinality": "M",
+          "target_cardinality": "N"
+        },
+        {
+          "id": "belongs",
+          "source": "book",
+          "target": "category",
+          "label": "归属",
+          "source_cardinality": "N",
+          "target_cardinality": "1"
+        }
+      ]
+    },
+    "view": {
+      "theme": "blue",
+      "direction": "LR",
+      "positions": {}
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "id": "table-example",
+    "type": "table",
+    "title": "数据库表关系图",
+    "description": "逻辑关联独立于数据库外键约束。每条借阅记录对应一名读者和一本图书。",
+    "model": {
+      "entities": [
+        {
+          "id": "reader",
+          "name": "reader · 读者",
+          "fields": [
+            {
+              "name": "id",
+              "type": "bigint",
+              "primary": true
+            },
+            {
+              "name": "name",
+              "type": "varchar(100)"
+            },
+            {
+              "name": "phone",
+              "type": "varchar(20)"
+            }
+          ]
+        },
+        {
+          "id": "loan",
+          "name": "loan · 借阅记录",
+          "fields": [
+            {
+              "name": "id",
+              "type": "bigint",
+              "primary": true
+            },
+            {
+              "name": "reader_id",
+              "type": "bigint"
+            },
+            {
+              "name": "book_id",
+              "type": "bigint"
+            },
+            {
+              "name": "borrowed_at",
+              "type": "datetime"
+            },
+            {
+              "name": "returned_at",
+              "type": "datetime"
+            }
+          ]
+        },
+        {
+          "id": "book",
+          "name": "book · 图书",
+          "fields": [
+            {
+              "name": "id",
+              "type": "bigint",
+              "primary": true
+            },
+            {
+              "name": "title",
+              "type": "varchar(100)"
+            },
+            {
+              "name": "status",
+              "type": "varchar(20)"
+            }
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "id": "reader-loan",
+          "source": "reader",
+          "target": "loan",
+          "label": "reader_id",
+          "source_cardinality": "1",
+          "target_cardinality": "0..N"
+        },
+        {
+          "id": "loan-book",
+          "source": "loan",
+          "target": "book",
+          "label": "book_id",
+          "source_cardinality": "0..N",
+          "target_cardinality": "1"
+        }
+      ]
+    },
+    "view": {
+      "theme": "blue",
+      "direction": "LR",
+      "positions": {}
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "id": "usecase-example",
+    "type": "usecase",
+    "title": "系统用例图",
+    "description": "从读者与管理员的角度，梳理系统对外提供的能力。",
+    "model": {
+      "system_name": "图书借阅系统",
+      "actors": [
+        {
+          "id": "reader",
+          "name": "读者"
+        },
+        {
+          "id": "admin",
+          "name": "管理员"
+        }
+      ],
+      "use_cases": [
+        {
+          "id": "search",
+          "name": "查询图书"
+        },
+        {
+          "id": "borrow",
+          "name": "借阅图书"
+        },
+        {
+          "id": "history",
+          "name": "查看借阅记录"
+        },
+        {
+          "id": "manage",
+          "name": "管理馆藏"
+        },
+        {
+          "id": "review",
+          "name": "处理借还"
+        },
+        {
+          "id": "eligibility",
+          "name": "校验借阅资格"
+        },
+        {
+          "id": "renew",
+          "name": "续借图书"
+        }
+      ],
+      "relations": [
+        {
+          "id": "u1",
+          "source": "reader",
+          "target": "search",
+          "label": ""
+        },
+        {
+          "id": "u2",
+          "source": "reader",
+          "target": "borrow",
+          "label": ""
+        },
+        {
+          "id": "u3",
+          "source": "reader",
+          "target": "history",
+          "label": ""
+        },
+        {
+          "id": "u4",
+          "source": "admin",
+          "target": "manage",
+          "label": ""
+        },
+        {
+          "id": "u5",
+          "source": "admin",
+          "target": "review",
+          "label": ""
+        },
+        {
+          "id": "u6",
+          "source": "borrow",
+          "target": "eligibility",
+          "label": "",
+          "kind": "include"
+        },
+        {
+          "id": "u7",
+          "source": "renew",
+          "target": "borrow",
+          "label": "",
+          "kind": "extend"
+        }
+      ]
+    },
+    "view": {
+      "theme": "blue",
+      "direction": "TB",
+      "positions": {}
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "id": "flowchart-example",
+    "type": "flowchart",
+    "title": "图书借阅流程",
+    "description": "展示借阅校验、成功处理与失败分支。",
+    "model": {
+      "nodes": [
+        {
+          "id": "start",
+          "name": "开始",
+          "shape": "terminal"
+        },
+        {
+          "id": "select",
+          "name": "选择图书",
+          "shape": "process"
+        },
+        {
+          "id": "check",
+          "name": "满足借阅条件？",
+          "shape": "decision"
+        },
+        {
+          "id": "save",
+          "name": "创建借阅记录",
+          "shape": "process"
+        },
+        {
+          "id": "reject",
+          "name": "提示不可借阅",
+          "shape": "process"
+        },
+        {
+          "id": "finish",
+          "name": "结束",
+          "shape": "terminal"
+        }
+      ],
+      "relations": [
+        {
+          "id": "f1",
+          "source": "start",
+          "target": "select",
+          "label": ""
+        },
+        {
+          "id": "f2",
+          "source": "select",
+          "target": "check",
+          "label": ""
+        },
+        {
+          "id": "f3",
+          "source": "check",
+          "target": "save",
+          "label": "是"
+        },
+        {
+          "id": "f4",
+          "source": "check",
+          "target": "reject",
+          "label": "否"
+        },
+        {
+          "id": "f5",
+          "source": "save",
+          "target": "finish",
+          "label": ""
+        },
+        {
+          "id": "f6",
+          "source": "reject",
+          "target": "finish",
+          "label": ""
+        }
+      ]
+    },
+    "view": {
+      "theme": "blue",
+      "direction": "TB",
+      "positions": {}
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "id": "sequence-example",
+    "type": "sequence",
+    "title": "借阅交互时序图",
+    "description": "按时间顺序展示一次借阅成功请求的参与者和消息。",
+    "model": {
+      "participants": [
+        {
+          "id": "reader",
+          "name": "读者"
+        },
+        {
+          "id": "page",
+          "name": "借阅页面"
+        },
+        {
+          "id": "service",
+          "name": "借阅服务"
+        },
+        {
+          "id": "db",
+          "name": "数据库"
+        }
+      ],
+      "messages": [
+        {
+          "id": "m1",
+          "source": "reader",
+          "target": "page",
+          "label": "点击借阅",
+          "kind": "call"
+        },
+        {
+          "id": "m2",
+          "source": "page",
+          "target": "service",
+          "label": "提交借阅请求",
+          "kind": "call"
+        },
+        {
+          "id": "m3",
+          "source": "service",
+          "target": "db",
+          "label": "校验并写入借阅记录",
+          "kind": "call"
+        },
+        {
+          "id": "m4",
+          "source": "db",
+          "target": "service",
+          "label": "返回处理结果",
+          "kind": "return"
+        },
+        {
+          "id": "m5",
+          "source": "service",
+          "target": "page",
+          "label": "借阅成功",
+          "kind": "return"
+        },
+        {
+          "id": "m6",
+          "source": "page",
+          "target": "reader",
+          "label": "展示成功提示",
+          "kind": "return"
+        }
+      ]
+    },
+    "view": {
+      "theme": "blue",
+      "direction": "TB",
+      "positions": {}
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "id": "class-example",
+    "type": "class",
+    "title": "借阅模块类图",
+    "description": "属性和操作分栏展示；虚线箭头表示服务对实体的依赖。",
+    "model": {
+      "classes": [
+        {
+          "id": "service",
+          "name": "BorrowService",
+          "fields": [
+            {
+              "name": "- repository",
+              "type": "LoanRepository"
+            }
+          ],
+          "methods": [
+            "+ borrow(readerId, bookId): Loan",
+            "+ returnBook(loanId): void"
+          ]
+        },
+        {
+          "id": "book",
+          "name": "Book",
+          "fields": [
+            {
+              "name": "- id",
+              "type": "int"
+            },
+            {
+              "name": "- title",
+              "type": "string"
+            },
+            {
+              "name": "- status",
+              "type": "string"
+            }
+          ],
+          "methods": [
+            "+ isAvailable(): bool"
+          ]
+        },
+        {
+          "id": "loan",
+          "name": "Loan",
+          "fields": [
+            {
+              "name": "- id",
+              "type": "int"
+            },
+            {
+              "name": "- borrowedAt",
+              "type": "datetime"
+            }
+          ],
+          "methods": [
+            "+ close(): void"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "id": "c1",
+          "source": "service",
+          "target": "book",
+          "label": "校验馆藏",
+          "kind": "dependency"
+        },
+        {
+          "id": "c2",
+          "source": "service",
+          "target": "loan",
+          "label": "创建记录",
+          "kind": "dependency"
+        }
+      ]
+    },
+    "view": {
+      "theme": "blue",
+      "direction": "LR",
+      "positions": {}
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "id": "architecture-example",
+    "type": "architecture",
+    "title": "系统架构图",
+    "description": "以简单的前后端分层表达组件及数据访问路径。",
+    "model": {
+      "nodes": [
+        {
+          "id": "client",
+          "name": "用户端 / 管理端",
+          "shape": "client"
+        },
+        {
+          "id": "api",
+          "name": "API 服务",
+          "shape": "service"
+        },
+        {
+          "id": "auth",
+          "name": "认证与权限",
+          "shape": "service"
+        },
+        {
+          "id": "business",
+          "name": "借阅业务服务",
+          "shape": "service"
+        },
+        {
+          "id": "db",
+          "name": "关系数据库",
+          "shape": "database"
+        }
+      ],
+      "relations": [
+        {
+          "id": "a1",
+          "source": "client",
+          "target": "api",
+          "label": "HTTPS"
+        },
+        {
+          "id": "a2",
+          "source": "api",
+          "target": "auth",
+          "label": "鉴权"
+        },
+        {
+          "id": "a3",
+          "source": "api",
+          "target": "business",
+          "label": "业务请求"
+        },
+        {
+          "id": "a4",
+          "source": "business",
+          "target": "db",
+          "label": "读写数据"
+        }
+      ]
+    },
+    "view": {
+      "theme": "blue",
+      "direction": "LR",
+      "positions": {}
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "id": "structure-example",
+    "type": "structure",
+    "title": "系统功能结构图",
+    "description": "按功能分解系统，适合论文总体设计章节。",
+    "model": {
+      "nodes": [
+        {
+          "id": "system",
+          "name": "图书借阅系统"
+        },
+        {
+          "id": "readers",
+          "name": "读者服务"
+        },
+        {
+          "id": "admin",
+          "name": "馆藏管理"
+        },
+        {
+          "id": "search",
+          "name": "图书查询"
+        },
+        {
+          "id": "loans",
+          "name": "借阅记录"
+        },
+        {
+          "id": "books",
+          "name": "图书维护"
+        },
+        {
+          "id": "categories",
+          "name": "分类管理"
+        }
+      ],
+      "relations": [
+        {
+          "id": "s1",
+          "source": "system",
+          "target": "readers",
+          "label": ""
+        },
+        {
+          "id": "s2",
+          "source": "system",
+          "target": "admin",
+          "label": ""
+        },
+        {
+          "id": "s3",
+          "source": "readers",
+          "target": "search",
+          "label": ""
+        },
+        {
+          "id": "s4",
+          "source": "readers",
+          "target": "loans",
+          "label": ""
+        },
+        {
+          "id": "s5",
+          "source": "admin",
+          "target": "books",
+          "label": ""
+        },
+        {
+          "id": "s6",
+          "source": "admin",
+          "target": "categories",
+          "label": ""
+        }
+      ]
+    },
+    "view": {
+      "theme": "blue",
+      "direction": "TB",
+      "positions": {}
+    }
+  }
+]
