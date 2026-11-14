@@ -266,8 +266,8 @@ func TestUseCaseRoutingAvoidsManuallyPlacedBlockers(t *testing.T) {
 	s := Generate(d)
 	assertUseCaseEdgesAvoidNodes(t, s)
 	for _, e := range s.Edges {
-		if e.ID == "u6" && len(e.Points) <= 2 {
-			t.Fatal("blocked dependency was not rerouted")
+		if len(e.Points) != 2 {
+			t.Fatal("use-case routing must move automatic nodes instead of bending", e.ID)
 		}
 	}
 	if n := sceneNode(s, "blocker"); n.X != 650 || n.Y != 244 {

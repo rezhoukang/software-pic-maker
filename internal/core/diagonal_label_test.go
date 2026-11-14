@@ -23,7 +23,7 @@ func TestDiagonalRelationshipLabelsClearTheWholeTextBox(t *testing.T) {
 			continue
 		}
 		p := e.LabelPosition
-		box := routeBox{left: p.X - labelWidth(e.Label)/2, right: p.X + labelWidth(e.Label)/2, top: p.Y - 11, bottom: p.Y + 11}
+		box := rotatedLabel{center: *p, width: labelWidth(e.Label) + 6, height: 24, angle: e.LabelAngle}
 		for _, other := range s.Edges {
 			for i := 1; i < len(other.Points); i++ {
 				if box.crosses(other.Points[i-1], other.Points[i]) {

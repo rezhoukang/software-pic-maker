@@ -104,6 +104,7 @@ type Edge struct {
 	Points              []Point `json:"points"`
 	Label               string  `json:"label,omitempty"`
 	LabelPosition       *Point  `json:"label_position,omitempty"`
+	LabelAngle          float64 `json:"label_angle,omitempty"`
 	SourceLabelPosition *Point  `json:"source_label_position,omitempty"`
 	TargetLabelPosition *Point  `json:"target_label_position,omitempty"`
 	SourceLabel         string  `json:"source_label,omitempty"`

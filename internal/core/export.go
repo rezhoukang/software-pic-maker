@@ -157,7 +157,7 @@ func labelSVG(b *strings.Builder, e Edge) {
 		if e.LabelPosition != nil {
 			label = *e.LabelPosition
 		}
-		fmt.Fprintf(b, `<g style="paint-order:stroke;stroke:white;stroke-width:7;stroke-linejoin:round">`)
+		fmt.Fprintf(b, `<g transform="rotate(%s %s %s)" style="paint-order:stroke;stroke:white;stroke-width:7;stroke-linejoin:round">`, num(e.LabelAngle), num(label.X), num(label.Y))
 		textSVG(b, label.X, label.Y, e.Label, 14, "#52627c", "middle", false)
 		b.WriteString(`</g>`)
 	}
@@ -291,7 +291,11 @@ func DrawIO(s Scene) string {
 		if e.Target != "" {
 			connections += ` target="` + esc(e.Target) + `"`
 		}
-		fmt.Fprintf(&b, `<mxCell id="%s" value="%s" style="%s" edge="1" parent="1"%s><mxGeometry relative="1" as="geometry">`, esc(e.ID), esc(e.Label), esc(style), connections)
+		label := e.Label
+		if s.Type == "usecase" {
+			label = ""
+		}
+		fmt.Fprintf(&b, `<mxCell id="%s" value="%s" style="%s" edge="1" parent="1"%s><mxGeometry relative="1" as="geometry">`, esc(e.ID), esc(label), esc(style), connections)
 		if e.LabelPosition != nil {
 			mid := pointAt(e.Points, .5)
 			fmt.Fprintf(&b, `<mxPoint x="%s" y="%s" as="offset"/>`, num(e.LabelPosition.X-mid.X), num(e.LabelPosition.Y-mid.Y))
@@ -306,6 +310,10 @@ func DrawIO(s Scene) string {
 			b.WriteString(`</Array>`)
 		}
 		b.WriteString(`</mxGeometry></mxCell>`)
+		if s.Type == "usecase" && e.Label != "" && e.LabelPosition != nil {
+			p, width := *e.LabelPosition, labelWidth(e.Label)
+			fmt.Fprintf(&b, `<mxCell id="$label:%s" value="%s" style="text;html=0;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=14;fillColor=#ffffff;rotation=%s;" vertex="1" parent="1"><mxGeometry x="%s" y="%s" width="%s" height="22" as="geometry"/></mxCell>`, esc(e.ID), esc(e.Label), num(e.LabelAngle), num(p.X-width/2), num(p.Y-11), num(width))
+		}
 		for i, v := range []struct {
 			text     string
 			ratio    float64

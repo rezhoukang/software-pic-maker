@@ -8,7 +8,7 @@ export interface Diagram { schema_version: string; id: string; type: DiagramType
 export interface Project { schema_version: string; name: string; diagrams: Diagram[]; updated_at?: string }
 export interface Issue { path: string; message: string; severity: 'error' | 'warning' }
 export interface SceneNode { id: string; x: number; y: number; width: number; height: number; shape: string; title: string; lines?: string[]; methods?: string[]; fill: string; stroke: string; movable: boolean }
-export interface SceneEdge { id: string; source?: string; target?: string; points: Point[]; label?: string; label_position?:Point; source_label?: string; source_label_position?:Point; target_label?: string; target_label_position?:Point; dashed: boolean; arrow: string }
+export interface SceneEdge { id: string; source?: string; target?: string; points: Point[]; label?: string; label_position?:Point; label_angle?:number; source_label?: string; source_label_position?:Point; target_label?: string; target_label_position?:Point; dashed: boolean; arrow: string }
 export interface Scene { width: number; height: number; nodes: SceneNode[]; edges: SceneEdge[]; type: string; title: string; theme: string }
 export interface RenderResult { validation: { valid: boolean; issues: Issue[] }; scene: Scene; svg: string; node_svgs: Record<string, string> }
 export interface Session { project: Project; path: string; recovered: boolean; recovery_error?: string;revision?:string }

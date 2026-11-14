@@ -66,15 +66,37 @@ func mergeFlowchartEdges(d Diagram, s *Scene, add func(Node), find func(string) 
 		if len(indices) < 2 {
 			continue
 		}
-		sort.SliceStable(indices, func(i, j int) bool {
-			a, b := center(find(s.Edges[indices[i]].Source)), center(find(s.Edges[indices[j]].Source))
-			if d.View.Direction == "LR" {
-				return a.Y < b.Y
-			}
-			return a.X < b.X
-		})
 		target := find(targetID)
 		tc := center(target)
+		sort.SliceStable(indices, func(i, j int) bool {
+			a, b := center(find(s.Edges[indices[i]].Source)), center(find(s.Edges[indices[j]].Source))
+			crossA, crossB, targetCross, alongA, alongB := a.X, b.X, tc.X, a.Y, b.Y
+			if d.View.Direction == "LR" {
+				crossA, crossB, targetCross, alongA, alongB = a.Y, b.Y, tc.Y, a.X, b.X
+			}
+			side := func(value float64) int {
+				if value < targetCross-.01 {
+					return -1
+				}
+				if value > targetCross+.01 {
+					return 1
+				}
+				return 0
+			}
+			sa, sb := side(crossA), side(crossB)
+			if sa != sb {
+				return sa < sb
+			}
+			// Same-side branches nest: the earliest source takes the outer
+			// landing point, leaving later exits inside it instead of crossing it.
+			if sa != 0 && math.Abs(alongA-alongB) > .01 {
+				if sa < 0 {
+					return alongA > alongB
+				}
+				return alongA < alongB
+			}
+			return crossA < crossB
+		})
 		front := 0.0
 		for _, i := range indices {
 			n := find(s.Edges[i].Source)

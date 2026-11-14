@@ -24,8 +24,8 @@ func TestUseCaseArrowWingsStayOutsideEllipse(t *testing.T) {
 		dx, dy = dx/length, dy/length
 		nx, ny := (end.X-c.X)/(rx*rx), (end.Y-c.Y)/(ry*ry)
 		cosine := (nx*dx + ny*dy) / math.Hypot(nx, ny)
-		if cosine < .99 {
-			t.Fatal("arrow should approach near the normal", e.ID, cosine)
+		if cosine < .5 {
+			t.Fatal("arrow should not graze the ellipse", e.ID, cosine)
 		}
 		for _, side := range []float64{-1, 1} {
 			for step := 2.0; step <= 10; step++ {

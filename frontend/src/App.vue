@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from 'vue'
-import { NConfigProvider, NSelect, NButton, NRadioGroup, NRadioButton, NForm, NFormItem, NInput, NAlert, NBadge, zhCN } from 'naive-ui'
+import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
+import { NConfigProvider, NSelect, NButton, NForm, NFormItem, NInput, NAlert, NBadge, zhCN } from 'naive-ui'
 import { Users, Plus, Save, Undo2, Redo2, ZoomIn, ZoomOut, CircleDot, Braces, SlidersHorizontal, Copy, Trash2, Check, AlertCircle, X, PanelLeftOpen, PanelRightClose, PanelRightOpen, File, FileJson, Link2, Move, BookOpen, Sparkles, RotateCcw, Maximize, Minimize } from 'lucide-vue-next'
 import Ajv from 'ajv/dist/2020'
 import DiagramCanvas from './components/DiagramCanvas.vue'
@@ -11,6 +11,7 @@ import schema from '../../shared/diagram.schema.json'
 import library from '../../shared/library.json'
 import { clone, itemsOf, kinds, newDiagram, type Diagram, type DiagramType, type Item, type Project, type Relation, type RenderResult } from './types'
 import * as bridge from './bridge'
+import { buildSkillHandoff } from './mcp-skill'
 
 const schemaValidator = new Ajv({ allErrors: true, strict: false }).compile(schema)
 const project = ref<Project>({ schema_version: '1.0', name: '图书借阅系统', diagrams: clone(library) as Diagram[] })
@@ -177,18 +178,16 @@ function autoLayout() { if (!guardDraft()) return; manualAdjust.value = false; c
 function openExport() { if (guardDraft()) exportModal.value = true }
 async function openMCP() { try { env.value = await bridge.environment() } catch (e) { notify(errorText(e), true) }; mcpModal.value = true }
 async function copy(value: string) { try { await bridge.copyText(value); notify('已复制到剪贴板') } catch (e) { notify(errorText(e), true) } }
+async function copySkill() { try { await bridge.copyText(buildSkillHandoff(mcpConfig.value)); notify('已复制 Skill 与 MCP 接入指引，可粘贴给 Agent') } catch (e) { notify(errorText(e), true) } }
 function handleKey(e: KeyboardEvent) {
  const target = e.target as HTMLElement | null
  const input = target?.closest('input')
  const editing = Boolean(target?.isContentEditable || target?.closest('textarea,select') || (input && !input.readOnly && !['radio','checkbox','button','submit','reset','range','color','file','hidden','image'].includes(input.type)))
+ if (exportModal.value) { if ((e.ctrlKey || e.metaKey) && ['s', 'z'].includes(e.key.toLowerCase())) e.preventDefault(); return }
  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); void save(e.shiftKey) }
  if (!editing && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
   e.preventDefault()
-  const palette = target?.closest('.theme-picker')
   if (e.shiftKey) redo(); else undo()
-  // Native radio inputs are controls, not text editors. Keep keyboard focus
-  // on the restored choice so its focus outline follows the selected theme.
-  if (palette) void nextTick(() => { if (palette.isConnected) palette.querySelector<HTMLInputElement>('input:checked')?.focus() })
  }
  if (!editing && !target?.closest('.file-explorer') && e.key === 'Delete') removeSelected()
  if (e.key === 'Escape') { selectElement(''); if(canvasFocus.value) canvasFocus.value=false }
@@ -225,7 +224,7 @@ onBeforeUnmount(() => { clearTimeout(toastTimer); clearTimeout(recoveryTimer); c
               <label v-if="active.type === 'class'" class="form-label">方法（每行一个）<textarea :value="selectedItem.methods?.join('\n') || ''" rows="5" @change="e => setMethods((e.target as HTMLTextAreaElement).value)"></textarea></label><button class="danger-button" @click="removeSelected"><Trash2 :size="14" />删除元素及相关连线</button>
             </template>
             <template v-else-if="selectedRelation"><div class="property-heading"><span class="property-icon"><Link2 :size="19" /></span><div><strong>{{ active.type === 'sequence' ? '交互消息' : '关联关系' }}</strong><small>选中连线</small></div><button class="icon-button" @click="selectElement('')"><X :size="15" /></button></div><label v-if="['usecase','class','sequence'].includes(active.type)" class="form-label">关系类型<NSelect :value="selectedRelation.kind || (active.type === 'sequence' ? 'call' : 'association')" :options="relationTypes" @update:value="v => editRelation('kind',v)" /></label><p v-if="active.type === 'usecase'" class="relation-hint">{{ relationHint(selectedRelation.kind) }}</p><label v-if="!['include','extend'].includes(selectedRelation.kind || '')" class="form-label">文字说明<input :value="selectedRelation.label" maxlength="120" @change="e => editRelation('label',(e.target as HTMLInputElement).value)"></label><label class="form-label">起点<NSelect :value="selectedRelation.source" :options="endpointOptions(selectedRelation.kind)" @update:value="v => editRelation('source',v)" /></label><label class="form-label">终点<NSelect :value="selectedRelation.target" :options="endpointOptions(selectedRelation.kind,selectedRelation.source)" @update:value="v => editRelation('target',v)" /></label><template v-if="['er','table'].includes(active.type)"><label class="form-label">起点基数<NSelect :value="selectedRelation.source_cardinality || '1'" :options="['1','0..1','0..N','1..N','N','M'].map(x => ({label:x,value:x}))" @update:value="v => editRelation('source_cardinality',v)" /></label><label class="form-label">终点基数<NSelect :value="selectedRelation.target_cardinality || 'N'" :options="['1','0..1','0..N','1..N','N','M'].map(x => ({label:x,value:x}))" @update:value="v => editRelation('target_cardinality',v)" /></label></template><button class="danger-button" @click="removeSelected"><Trash2 :size="14" />删除关系</button></template>
-            <template v-else><div class="property-section-title first"><span>基本信息</span><span class="tiny-tag">{{ meta.label }}</span></div><label class="form-label">图表名称<input :value="active.title" maxlength="120" @change="e => editDiagram('title',(e.target as HTMLInputElement).value)"></label><label v-if="active.type === 'usecase'" class="form-label">系统名称<input :value="active.model.system_name" aria-label="系统名称" maxlength="120" @change="editSystemName"></label><label class="form-label">说明<textarea :value="active.description" rows="3" maxlength="2000" @change="e => editDiagram('description',(e.target as HTMLTextAreaElement).value)"></textarea></label><div class="property-divider"></div><div class="property-section-title"><span>风格</span></div><NRadioGroup class="theme-picker" size="small" name="diagram-theme" aria-label="配色方案" :value="active.view.theme" @update:value="value => commit(() => active.view.theme = String(value))"><NRadioButton v-for="t in [{id:'blue',label:'蓝图',color:'#586fe8'},{id:'mono',label:'论文',color:'#343b46'},{id:'sage',label:'青绿',color:'#6a8c7c'}]" :key="t.id" :value="t.id"><span class="theme-label"><span class="theme-swatch" :style="{ background:t.color }" aria-hidden="true"></span>{{ t.label }}</span></NRadioButton></NRadioGroup><label v-if="!['er','usecase','sequence'].includes(active.type)" class="form-label">布局方向<NSelect :value="active.view.direction" :options="[{label:'从左到右',value:'LR'},{label:'从上到下',value:'TB'}]" @update:value="v => commit(() => { active.view.direction=v;active.view.positions={} })" /></label><div class="property-divider"></div><div class="property-section-title"><span>图表操作</span></div><button class="inspector-action" @click="duplicateDiagram"><Copy :size="15" />复制当前图表</button><button class="inspector-action" @click="save(true)"><Save :size="15" />导出项目副本</button><button class="inspector-action muted-danger" @click="deleteDiagram"><Trash2 :size="15" />删除当前文件</button></template>
+            <template v-else><div class="property-section-title first"><span>基本信息</span><span class="tiny-tag">{{ meta.label }}</span></div><label class="form-label">图表名称<input :value="active.title" maxlength="120" @change="e => editDiagram('title',(e.target as HTMLInputElement).value)"></label><label v-if="active.type === 'usecase'" class="form-label">系统名称<input :value="active.model.system_name" aria-label="系统名称" maxlength="120" @change="editSystemName"></label><label class="form-label">说明<textarea :value="active.description" rows="3" maxlength="2000" @change="e => editDiagram('description',(e.target as HTMLTextAreaElement).value)"></textarea></label><label v-if="!['er','usecase','sequence'].includes(active.type)" class="form-label">布局方向<NSelect :value="active.view.direction" :options="[{label:'从左到右',value:'LR'},{label:'从上到下',value:'TB'}]" @update:value="v => commit(() => { active.view.direction=v;active.view.positions={} })" /></label><div class="property-divider"></div><div class="property-section-title"><span>图表操作</span></div><button class="inspector-action" @click="duplicateDiagram"><Copy :size="15" />复制当前图表</button><button class="inspector-action" @click="save(true)"><Save :size="15" />导出项目副本</button><button class="inspector-action muted-danger" @click="deleteDiagram"><Trash2 :size="15" />删除当前文件</button></template>
           </div>
           <div v-else class="inspector-content"><div class="validation-summary" :class="{failed:!result?.validation.valid}"><Check v-if="result?.validation.valid" :size="22" /><AlertCircle v-else :size="22" /><strong>{{ result?.validation.valid ? '结构校验通过' : '需要检查' }}</strong><p>{{ validationIssues.length ? '以下提示可以帮助完善图表。' : '字段、引用和关系符合当前图种规则。' }}</p></div><div class="issue-card" v-for="(issue,i) in validationIssues" :key="i" :class="issue.severity"><span>{{ issue.severity === 'error' ? '错误' : '提示' }}</span><p>{{ issue.message }}</p><code>{{ issue.path }}</code></div><div class="layout-note"><BookOpen :size="15" /><p>校验检查结构规则，业务含义仍需结合实际需求确认。</p></div></div>
         </aside>
@@ -266,11 +265,11 @@ onBeforeUnmount(() => { clearTimeout(toastTimer); clearTimeout(recoveryTimer); c
   </AppDialog>
 
   <AppDialog v-model:show="mcpModal" title="MCP 接入" class="mcp-modal" :width="640">
-    <p class="dialog-description">将以下配置添加到支持 MCP 的客户端。</p>
+    <p class="dialog-description">将以下配置添加到支持 MCP 的客户端，或点击“复制 Skill”将完整指引交给 Agent。</p>
     <NAlert :type="env.mcp_ready?'success':'info'" :show-icon="false">{{ env.mcp_ready ? '独立 MCP 程序已就绪' : '打包后提供独立 MCP 程序' }}</NAlert>
     <pre class="config-code">{{ mcpConfig }}</pre>
     <p class="dialog-description">支持项目文件夹、图表新建与修改、版本校验，以及 PNG / SVG / draw.io / JSON 批量导出。可在桌面窗口关闭后独立运行，PNG 需本机安装 Edge 或 Chrome。</p>
-    <template #footer><NButton @click="mcpModal=false">关闭</NButton><NButton type="primary" @click="copy(mcpConfig)">复制配置</NButton></template>
+    <template #footer><NButton @click="mcpModal=false">关闭</NButton><NButton @click="copy(mcpConfig)">复制配置</NButton><NButton type="primary" @click="copySkill">复制 Skill</NButton></template>
   </AppDialog>
 
   <AppDialog v-model:show="confirmModal" title="切换当前文件？" class="compact-modal" :closable="!switchSaving" :mask-closable="!switchSaving">

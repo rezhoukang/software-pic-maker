@@ -55,7 +55,9 @@ func arrangeUseCaseGroup(items []Item, relations []Relation) useCaseGroup {
 	rootIndex := 0
 	for _, n := range items {
 		if !children[n.ID] {
-			place(n.ID, rootIndex/8, rootIndex%8)
+			// Actor associations stay in an open corridor outside this column;
+			// wrapping roots into another column puts unrelated cases in the way.
+			place(n.ID, 0, rootIndex)
 			rootIndex++
 		}
 	}
@@ -92,7 +94,7 @@ func arrangeUseCaseGroup(items []Item, relations []Relation) useCaseGroup {
 	}
 	group := useCaseGroup{items: items, positions: map[string]Point{}, side: 0}
 	for id, p := range positions {
-		position := Point{p.X * 330, p.Y * 104}
+		position := Point{p.X * 360, p.Y * 104}
 		group.positions[id] = position
 		group.width = math.Max(group.width, position.X+230)
 		group.height = math.Max(group.height, position.Y+62)
@@ -168,22 +170,16 @@ func layoutUseCases(d Diagram, s *Scene, add func(Node), find func(string) Node)
 	for _, key := range order {
 		group := arrangeUseCaseGroup(components[key], d.Model.Relations)
 		owners := []Item{}
-		leftOwners, rightOwners := 0, 0
 		for _, a := range d.Model.Actors {
 			for _, id := range neighbors[a.ID] {
 				if root(id) == key {
 					owners = append(owners, a)
-					if actorSide[a.ID] == 0 {
-						leftOwners++
-					} else {
-						rightOwners++
-					}
 					break
 				}
 			}
 		}
-		if len(owners) <= 3 {
-			// Actors sharing a small use-case group belong on the same side.
+		if len(owners) > 0 {
+			// Actors sharing a use-case group belong on the same side.
 			// Alternating by actor index sends their associations across the system.
 			if stackHeight[1] < stackHeight[0] {
 				group.side = 1
@@ -191,8 +187,6 @@ func layoutUseCases(d Diagram, s *Scene, add func(Node), find func(string) Node)
 			for _, a := range owners {
 				actorSide[a.ID] = group.side
 			}
-		} else if rightOwners > leftOwners || leftOwners == rightOwners && stackHeight[1] < stackHeight[0] {
-			group.side = 1
 		}
 		stackWidth[group.side] = math.Max(stackWidth[group.side], group.width)
 		if stackHeight[group.side] > 0 {
@@ -265,10 +259,25 @@ func layoutUseCases(d Diagram, s *Scene, add func(Node), find func(string) Node)
 		}
 	}
 	actorY := useCaseActorPositions(d.Model.Actors, neighbors, actorSide, top, find)
+	fanGap := [2]float64{165, 165}
 	for _, a := range d.Model.Actors {
-		x := math.Max(0, left-165)
+		for _, id := range neighbors[a.ID] {
+			span := math.Abs(connectionCenter(find(id)).Y - (actorY[a.ID] + 56))
+			if span > 800 && len(d.View.Positions) == 0 {
+				fanGap[actorSide[a.ID]] = math.Max(fanGap[actorSide[a.ID]], 165+span*.85)
+			}
+		}
+	}
+	if shift := fanGap[0] + 20 - left; shift > 0 && len(d.View.Positions) == 0 {
+		for i := range s.Nodes {
+			s.Nodes[i].X += shift
+		}
+		left, right = left+shift, right+shift
+	}
+	for _, a := range d.Model.Actors {
+		x := math.Max(0, left-fanGap[0])
 		if actorSide[a.ID] == 1 {
-			x = right + 65
+			x = right + fanGap[1] - 100
 		}
 		y := actorY[a.ID]
 		add(Node{ID: a.ID, X: x, Y: y, Width: 90, Height: actorNodeHeight, Shape: "actor", Title: a.Name, Movable: true})
@@ -276,7 +285,7 @@ func layoutUseCases(d Diagram, s *Scene, add func(Node), find func(string) Node)
 		bottom = math.Max(bottom, actual.Y+actual.Height+35)
 	}
 	add(Node{ID: "$boundary", X: left, Y: top, Width: right - left, Height: bottom - top, Shape: "boundary", Title: d.Model.SystemName, Movable: false})
-	router := newUseCaseRouter(s.Nodes)
+	relaxUseCasePlacement(d, s)
 	for _, r := range d.Model.Relations {
 		label, arrow, dashed := r.Label, "none", false
 		if r.Kind == "include" || r.Kind == "extend" {
@@ -285,12 +294,21 @@ func layoutUseCases(d Diagram, s *Scene, add func(Node), find func(string) Node)
 			dashed = true
 		}
 		a, b := find(r.Source), find(r.Target)
-		var points []Point
-		if arrow == "none" {
-			points = router.route(a, b)
-		} else {
-			points = router.routeArrow(a, b)
-		}
+		points := routeUseCaseStraight(a, b, arrow != "none", s.Nodes, s.Edges)
 		s.Edges = append(s.Edges, Edge{ID: r.ID, Source: r.Source, Target: r.Target, Points: points, Label: label, Arrow: arrow, Dashed: dashed})
+	}
+	// Earlier arrows must also see later arrivals at the same ellipse. Revisiting
+	// their endpoints prevents the first normal port from crowding all the others.
+	for pass := 0; pass < 2; pass++ {
+		for i := range s.Edges {
+			e := &s.Edges[i]
+			others := make([]Edge, 0, len(s.Edges)-1)
+			for j, other := range s.Edges {
+				if i != j {
+					others = append(others, other)
+				}
+			}
+			e.Points = routeUseCaseStraight(find(e.Source), find(e.Target), e.Arrow != "none", s.Nodes, others)
+		}
 	}
 }

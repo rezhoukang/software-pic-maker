@@ -184,6 +184,10 @@ func labelWidth(text string) float64 {
 }
 
 func placeEdgeLabels(s *Scene) {
+	if s.Type == "usecase" {
+		placeUseCaseLabels(s)
+		return
+	}
 	occupied := []routeBox{}
 	for _, n := range s.Nodes {
 		if n.Shape != "boundary" && n.Shape != "activation" {

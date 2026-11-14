@@ -28,10 +28,10 @@ function buildCells(result:RenderResult) {
     const pts = e.points; if (pts.length < 2) continue
     const endpoint = (id: string | undefined, point: {x:number;y:number}) => { const n = scene.nodes.find(n => n.id === id); return n ? { cell: id, anchor: { name: 'topLeft', args: { dx: point.x-n.x, dy: point.y-n.y } }, connectionPoint: { name: 'anchor' } } : point }
     const labels: any[] = []
-    for (const [text, distance, y, position] of [[e.label, .5, -14, e.label_position], [e.source_label, .12, e.label ? 18 : -15, e.source_label_position], [e.target_label, .88, e.label ? 18 : -15, e.target_label_position]] as [string | undefined, number, number, {x:number;y:number} | undefined][]) {
+    for (const [text, distance, y, position, angle] of [[e.label, .5, -14, e.label_position, e.label_angle ?? 0], [e.source_label, .12, e.label ? 18 : -15, e.source_label_position, 0], [e.target_label, .88, e.label ? 18 : -15, e.target_label_position, 0]] as [string | undefined, number, number, {x:number;y:number} | undefined, number][]) {
       if (!text) continue
       const base = pointAt(pts,distance)
-      labels.push({ position: { distance, offset: position ? {x:position.x-base.x,y:position.y-base.y} : {x:0,y} }, attrs: { label: { text, pointerEvents: 'all', cursor: 'pointer', fill: edgeColor(), fontSize: 14, fontFamily: 'Microsoft YaHei, sans-serif' }, body: { fill: '#fff', stroke: 'none', rx: 3, pointerEvents: 'none' } } })
+      labels.push({ position: { distance, angle, offset: position ? {x:position.x-base.x,y:position.y-base.y} : {x:0,y} }, attrs: { label: { text, pointerEvents: 'all', cursor: 'pointer', fill: edgeColor(), fontSize: 14, fontFamily: 'Microsoft YaHei, sans-serif' }, body: { fill: '#fff', stroke: 'none', rx: 3, pointerEvents: 'none' } } })
     }
     cells.push({ id: e.id, shape: 'edge', source: endpoint(e.source, pts[0]), target: endpoint(e.target, pts.at(-1)!), vertices: pts.slice(1, -1), zIndex: 1, router: { name: 'normal' }, connector: { name: 'normal' }, labels, attrs: { line: { stroke: props.selected === e.id ? '#4f6df5' : edgeColor(), strokeWidth: 1.6, strokeDasharray: e.dashed ? '7 5' : '', targetMarker: arrowMarker(e.arrow) } } })
   }

@@ -1,6 +1,11 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 
-test('table layout aligns headers and palette changes undo as individual actions', async ({ page }) => {
+async function choose(page: Page, label: string, option: string) {
+  await page.getByLabel(label, { exact: true }).click()
+  await page.locator('.n-base-select-option:visible').filter({ hasText: new RegExp('^' + option + '$') }).first().click()
+}
+
+test('table layout aligns headers and styling lives in export', async ({ page }) => {
   await page.goto('/')
   await page.locator('.diagram-nav[data-type="table"]').first().click()
   await expect(page.getByTestId('diagram-canvas')).toHaveAttribute('data-rendered-type', 'table')
@@ -9,59 +14,67 @@ test('table layout aligns headers and palette changes undo as individual actions
   const boxes = await Promise.all(nodes.map(node => node.boundingBox()))
   expect(Math.abs(boxes[0]!.y - boxes[1]!.y)).toBeLessThan(1)
   expect(Math.abs(boxes[1]!.y - boxes[2]!.y)).toBeLessThan(1)
-  await expect(page.locator('.form-label').filter({ hasText: '配色方案' })).toHaveCount(0)
-  await nodes[0].click()
-  await page.keyboard.press('Escape')
-  const palette = page.locator('.theme-picker')
-  const chosen = palette.locator('.n-radio-button--checked')
-  const undo = page.getByRole('button', { name: '撤销', exact: true })
-  const redo = page.getByRole('button', { name: '重做', exact: true })
-  await palette.getByText('论文', { exact: true }).click()
-  await palette.getByText('青绿', { exact: true }).click()
-  await palette.getByText('青绿', { exact: true }).click()
-  await undo.click()
-  await expect(chosen).toHaveText('论文')
-  await undo.click()
-  await expect(chosen).toHaveText('蓝图')
-  await expect(page.locator('.render-progress')).toHaveCount(0)
-  await page.locator('.canvas-area').screenshot({ path: 'test-results/table-style/aligned-headers.png' })
-  await undo.click()
-  await expect(page.locator('.property-heading strong')).toHaveText('reader · 读者')
-  await redo.click()
-  await expect(chosen).toHaveText('蓝图')
-  await redo.click()
-  await expect(chosen).toHaveText('论文')
-  await redo.click()
-  await expect(chosen).toHaveText('青绿')
+  await expect(page.locator('.inspector .theme-picker')).toHaveCount(0)
 })
 
-test('Ctrl+Z works immediately after clicking a palette radio and its focus follows undo', async ({ page }) => {
+test('export style changes output without changing source data or undo history', async ({ page }) => {
   await page.goto('/')
   await expect(page.locator('.x6-node').first()).toBeVisible()
-  const palette = page.locator('.theme-picker')
-  const chosen = palette.locator('.n-radio-button--checked')
-  await palette.getByText('论文', { exact: true }).click()
-  await palette.getByText('青绿', { exact: true }).click()
-  await expect(palette.locator('input[value="sage"]')).toBeFocused()
-  await page.keyboard.press('Control+z')
-  await expect(chosen).toHaveText('论文')
-  await expect(palette.locator('input[value="mono"]')).toBeFocused()
-  await page.keyboard.press('Control+z')
-  await expect(chosen).toHaveText('蓝图')
-  await expect(palette.locator('input[value="blue"]')).toBeFocused()
-  await page.keyboard.press('Control+Shift+z')
-  await expect(chosen).toHaveText('论文')
-  await expect(palette.locator('input[value="mono"]')).toBeFocused()
-  await page.keyboard.press('Control+Shift+z')
-  await expect(chosen).toHaveText('青绿')
-  await expect(palette.locator('input[value="sage"]')).toBeFocused()
-  // Text inputs must still receive their native undo without changing the theme.
   const title = page.getByRole('textbox', { name: '图表名称', exact: true })
   const original = await title.inputValue()
-  await title.focus()
-  await title.press('End')
-  await title.pressSequentially('test')
+  await title.fill('导出风格测试'); await title.press('Tab')
+  const sourcePath = await page.locator('.diagram-nav.active').getAttribute('data-entry-path')
+  await page.getByTestId('export-button').click()
+  const dialog = page.getByRole('dialog', { name: '导出', exact: true })
+  await expect(dialog.locator('.export-summary')).not.toContainText('正在读取')
+  await choose(page, '导出范围', '当前图')
+  await choose(page, '导出形式', 'SVG 矢量图')
+  await dialog.getByText('论文', { exact: true }).click()
   await page.keyboard.press('Control+z')
+  const download = page.waitForEvent('download')
+  await dialog.getByRole('button', { name: '导出', exact: true }).click()
+  const stream = await (await download).createReadStream()
+  const chunks: Buffer[] = []
+  for await (const chunk of stream!) chunks.push(Buffer.from(chunk))
+  expect(Buffer.concat(chunks).toString()).toContain('#333333')
+  await expect(title).toHaveValue('导出风格测试')
+  await expect(page.getByTestId('file-save-status')).toContainText('未保存')
+  const sourceTheme = await page.evaluate(async path => {
+    const response = await fetch('/api/workspace/read', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-EZ-Workspace': localStorage.getItem('ezbitu-preview-workspace')! }, body: JSON.stringify({ path }) })
+    return (await response.json()).diagram.view.theme
+  }, sourcePath)
+  expect(sourceTheme).toBe('blue')
+  await page.getByRole('button', { name: '撤销', exact: true }).click()
   await expect(title).toHaveValue(original)
-  await expect(chosen).toHaveText('青绿')
+})
+
+test('batch export applies one style without changing stored files', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.locator('.x6-node').first()).toBeVisible()
+  await page.getByTestId('export-button').click()
+  const dialog = page.getByRole('dialog', { name: '导出', exact: true })
+  await expect(dialog.locator('.export-summary')).not.toContainText('正在读取')
+  await choose(page, '导出范围', '全部文件')
+  await choose(page, '导出形式', 'JSON 设计数据')
+  await dialog.getByText('青绿', { exact: true }).click()
+  await dialog.getByRole('checkbox', { name: '文件夹', exact: true }).uncheck()
+  await dialog.getByRole('checkbox', { name: 'ZIP 压缩包', exact: true }).check()
+  let exported = false
+  await page.route('**/api/export/zip', async route => {
+    const files = route.request().postDataJSON().files as { data: string }[]
+    expect(files).toHaveLength(8)
+    for (const file of files) expect(JSON.parse(Buffer.from(file.data, 'base64').toString()).view.theme).toBe('sage')
+    exported = true
+    await route.continue()
+  })
+  const download = page.waitForEvent('download')
+  await dialog.getByRole('button', { name: '导出', exact: true }).click()
+  await download
+  expect(exported).toBe(true)
+  const stored = await page.evaluate(async () => {
+    const headers = { 'Content-Type': 'application/json', 'X-EZ-Workspace': localStorage.getItem('ezbitu-preview-workspace')! }
+    const tree = await (await fetch('/api/workspace/list', { method: 'POST', headers, body: '{}' })).json()
+    return Promise.all(tree.entries[0].children.map(async (file: { path: string }) => (await (await fetch('/api/workspace/read', { method: 'POST', headers, body: JSON.stringify({ path: file.path }) })).json()).diagram.view.theme))
+  })
+  expect(stored).toEqual(Array(8).fill('blue'))
 })

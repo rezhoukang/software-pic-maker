@@ -1,11 +1,8 @@
 package core
 
-import (
-	"math"
-	"testing"
-)
+import "testing"
 
-func TestUseCaseRelationshipsNeverHaveRightAngleBends(t *testing.T) {
+func TestUseCaseRelationshipsAreAlwaysSingleStraightSegments(t *testing.T) {
 	moved := sharedActorUseCases()
 	moved.View.Positions["reader"] = Point{55, 80}
 	blocked := Templates()[2]
@@ -16,13 +13,8 @@ func TestUseCaseRelationshipsNeverHaveRightAngleBends(t *testing.T) {
 		s := Generate(d)
 		assertUseCaseEdgesAvoidNodes(t, s)
 		for _, e := range s.Edges {
-			for i := 1; i < len(e.Points)-1; i++ {
-				a, b, c := e.Points[i-1], e.Points[i], e.Points[i+1]
-				dx, dy, ex, ey := b.X-a.X, b.Y-a.Y, c.X-b.X, c.Y-b.Y
-				cosine := math.Abs(dx*ex+dy*ey) / (math.Hypot(dx, dy) * math.Hypot(ex, ey))
-				if cosine < .001 {
-					t.Fatal("right-angle use-case connector", e.ID, e.Points)
-				}
+			if len(e.Points) != 2 {
+				t.Fatal("use-case connector must never bend", e.ID, e.Points)
 			}
 		}
 	}

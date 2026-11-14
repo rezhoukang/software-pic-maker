@@ -83,20 +83,6 @@ func (r *useCaseRouter) clear(a, b Point, skipA, skipB string) bool {
 	return true
 }
 
-func (r *useCaseRouter) directClear(a, b Point, skipA, skipB string) bool {
-	for _, box := range r.boxes {
-		if box.id == skipA || box.id == skipB {
-			continue
-		}
-		// A visible straight association should not be detoured just because it
-		// grazes the wider clearance reserved for orthogonal routing.
-		tight := routeBox{left: box.left + 12, right: box.right - 12, top: box.top + 12, bottom: box.bottom - 12}
-		if tight.crosses(a, b) {
-			return false
-		}
-	}
-	return true
-}
 func (r *useCaseRouter) blocked(p Point) bool {
 	for _, box := range r.boxes {
 		if box.contains(p) {
@@ -232,79 +218,6 @@ func simplifyRoute(points []Point) []Point {
 	}
 	return out
 }
-func (r *useCaseRouter) route(a, b Node) []Point {
-	direct := straight(a, b)
-	if r.directClear(direct[0], direct[1], a.ID, b.ID) {
-		return direct
-	}
-	return r.obliqueRoute(a, b, r.routePorts(a, b, useCasePorts(a), useCasePorts(b)), false)
-}
-func (r *useCaseRouter) routeArrow(a, b Node) []Point {
-	if b.Shape == "ellipse" {
-		end := ellipseNormalBoundary(b, connectionCenter(a))
-		start := shapeBoundary(a, end)
-		if r.directClear(start, end, a.ID, b.ID) {
-			return []Point{start, end}
-		}
-	}
-	return r.obliqueRoute(a, b, r.routePorts(a, b, useCasePorts(a), useCasePorts(b)), true)
-}
-
-// Use-case relationships should read as straight or oblique lines. The shared
-// obstacle router also serves box diagrams, so remove its orthogonal detours
-// here only, while retaining obstacle clearance and normal arrow approaches.
-func (r *useCaseRouter) obliqueRoute(a, b Node, points []Point, arrow bool) []Point {
-	if len(points) < 3 {
-		return points
-	}
-	visible := func(i, j int) bool {
-		p, q := points[i], points[j]
-		skipA, skipB := "", ""
-		if i == 0 {
-			skipA = a.ID
-			c := connectionCenter(a)
-			if (q.X-p.X)*(p.X-c.X)+(q.Y-p.Y)*(p.Y-c.Y) < -.001 {
-				return false
-			}
-		}
-		if j == len(points)-1 {
-			if arrow && i != j-1 {
-				return false
-			}
-			skipB = b.ID
-			c := connectionCenter(b)
-			if (p.X-q.X)*(q.X-c.X)+(p.Y-q.Y)*(q.Y-c.Y) < -.001 {
-				return false
-			}
-		}
-		return r.clear(p, q, skipA, skipB)
-	}
-	short := []Point{points[0]}
-	for i := 0; i < len(points)-1; {
-		j := len(points) - 1
-		for j > i+1 && !visible(i, j) {
-			j--
-		}
-		short = append(short, points[j])
-		i = j
-	}
-	// Rare tight passages can still retain a right angle. A small diagonal
-	// through its reserved 16px clearance keeps the actual shapes unobstructed.
-	out := []Point{short[0]}
-	for i := 1; i < len(short)-1; i++ {
-		p, q, z := short[i-1], short[i], short[i+1]
-		dx, dy, ex, ey := q.X-p.X, q.Y-p.Y, z.X-q.X, z.Y-q.Y
-		before, after := math.Hypot(dx, dy), math.Hypot(ex, ey)
-		if before > .001 && after > .001 && math.Abs(dx*ex+dy*ey) < .00001*before*after {
-			cut := math.Min(6, math.Min(before, after)/3)
-			out = append(out, Point{q.X - dx/before*cut, q.Y - dy/before*cut}, Point{q.X + ex/after*cut, q.Y + ey/after*cut})
-		} else {
-			out = append(out, q)
-		}
-	}
-	return simplifyRoute(append(out, short[len(short)-1]))
-}
-
 func (r *useCaseRouter) routePorts(a, b Node, sources, targets []routePort) []Point {
 	direct := straight(a, b)
 	if len(sources) == 1 && len(targets) == 1 {

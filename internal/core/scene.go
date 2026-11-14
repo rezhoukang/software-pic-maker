@@ -58,6 +58,8 @@ func Generate(d Diagram) Scene {
 		layoutUseCases(d, &s, add, find)
 	case "sequence":
 		layoutSequence(d, &s, add, find)
+	case "architecture":
+		layoutArchitecture(d, &s, add, find)
 	default:
 		items := d.Items()
 		levels := layers(items, d.Model.Relations)
@@ -86,6 +88,18 @@ func Generate(d Diagram) Scene {
 				if len(n.Methods) > 0 {
 					h += 20 + float64(len(n.Methods))*32
 				}
+				if d.Type == "class" {
+					degree := 0
+					for _, r := range d.Model.Relations {
+						if r.Source == n.ID {
+							degree++
+						}
+						if r.Target == n.ID {
+							degree++
+						}
+					}
+					h = math.Max(h, float64(degree)*20+28)
+				}
 			}
 			if n.Shape == "decision" {
 				h = 105
@@ -113,9 +127,11 @@ func Generate(d Diagram) Scene {
 				horizontalGap = math.Max(horizontalGap, labelWidth(r.SourceCardinality)+labelWidth(r.TargetCardinality)+40)
 			}
 		}
-		var flowPositions map[string]Point
+		var layoutPositions map[string]Point
 		if d.Type == "flowchart" {
-			flowPositions = flowchartPositions(d, levels, dims)
+			layoutPositions = flowchartPositions(d, levels, dims)
+		} else if d.Type == "class" && d.View.Direction == "LR" {
+			layoutPositions = classPositions(d, dims)
 		}
 		for level, row := range levels {
 			for order, id := range row {
@@ -137,7 +153,7 @@ func Generate(d Diagram) Scene {
 						y -= (maxH - h) / 2
 					}
 				}
-				if p, ok := flowPositions[id]; ok {
+				if p, ok := layoutPositions[id]; ok {
 					x, y = p.X, p.Y
 				}
 				shape := "rect"
@@ -169,7 +185,9 @@ func Generate(d Diagram) Scene {
 		}
 		if d.Type == "structure" {
 			layoutStructureEdges(d, &s, find)
-		} else if d.Type == "class" || d.Type == "table" || d.Type == "architecture" {
+		} else if d.Type == "class" {
+			layoutClassEdges(d, &s, find)
+		} else if d.Type == "table" || d.Type == "architecture" {
 			layoutBoxEdges(d, &s, find)
 		} else {
 			for _, r := range d.Model.Relations {
