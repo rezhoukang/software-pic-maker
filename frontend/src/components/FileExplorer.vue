@@ -23,17 +23,21 @@ const filtered=computed(()=>{
   return children.length || matches?[{...entry,children}]:[]
  });return visit(tree.value.entries)
 })
-const visibleExpanded=computed(()=>search.value.trim() || category.value!=='all'?allEntries(filtered.value).filter(e=>e.kind==='folder').map(e=>e.path):expanded.value)
+const filterExpansion=ref<Record<string,boolean>>({})
+const filtering=computed(()=>Boolean(search.value.trim()) || category.value!=='all')
+watch([()=>search.value.trim(),category],()=>{filterExpansion.value={}})
+const visibleExpanded=computed(()=>filtering.value?allEntries(filtered.value).filter(e=>e.kind==='folder' && e.children?.length && filterExpansion.value[e.path]!==false).map(e=>e.path):expanded.value)
+const rootExpanded=computed(()=>rootOpen.value && filtered.value.length>0)
 function reveal(path:string){const parts=path.split('/');for(let i=1;i<parts.length;i++){const p=parts.slice(0,i).join('/');if(!expanded.value.includes(p))expanded.value.push(p)}rootOpen.value=true}
 watch(()=>props.activePath,p=>{reveal(p);if(p)selectedFolder.value=p.split('/').slice(0,-1).join('/')})
 let refreshTask:Promise<void>|null=null
 function refresh(initial=false,silent=false):Promise<void>{
  if(refreshTask)return refreshTask
  loading.value=!silent;loadError.value=''
- refreshTask=(async()=>{try{tree.value=await bridge.listWorkspace();if(initial){expanded.value=tree.value.entries.filter(e=>e.kind==='folder').map(e=>e.path);const files=allEntries(tree.value.entries).filter(e=>e.kind==='file'&&e.diagram_type);const first=files.find(e=>e.path===props.activePath)||files.find(e=>e.diagram_type==='er')||files[0];if(first)emit('open',first.path,true)}reveal(props.activePath)}catch(e){loadError.value=String(e instanceof Error?e.message:e)}finally{loading.value=false;refreshTask=null}})()
+ refreshTask=(async()=>{try{tree.value=await bridge.listWorkspace();if(initial){expanded.value=tree.value.entries.filter(e=>e.kind==='folder').map(e=>e.path);const files=allEntries(tree.value.entries).filter(e=>e.kind==='file'&&e.diagram_type);const first=files.find(e=>e.path===props.activePath)||files.find(e=>e.diagram_type==='er')||files[0];if(first)emit('open',first.path,true);reveal(props.activePath)}}catch(e){loadError.value=String(e instanceof Error?e.message:e)}finally{loading.value=false;refreshTask=null}})()
  return refreshTask
 }
-function toggle(path:string){selectedFolder.value=path;expanded.value=expanded.value.includes(path)?expanded.value.filter(p=>p!==path):[...expanded.value,path]}
+function toggle(path:string){selectedFolder.value=path;if(filtering.value){filterExpansion.value[path]=!visibleExpanded.value.includes(path);return}expanded.value=expanded.value.includes(path)?expanded.value.filter(p=>p!==path):[...expanded.value,path]}
 function showMenu(event:MouseEvent,entry:WorkspaceEntry){target.value=entry;menuX.value=Math.min(event.clientX,window.innerWidth-180);menuY.value=Math.min(event.clientY,window.innerHeight-180);menu.value=true}
 async function selectMenu(key:string){menu.value=false;if(key==='file'){emit('create',target.value.path);return};if(key==='design'){emit('design',target.value.path);return};action.value=key as typeof action.value;name.value=key==='rename'?target.value.name.replace(/\.json$/i,''):'';actionError.value='';await nextTick();input.value?.focus();input.value?.select()}
 async function submit(){if(working.value)return;working.value=true;actionError.value='';try{
@@ -60,8 +64,8 @@ defineExpose({refresh,requestDelete,selectedFolder,reveal})
   </div>
   <nav class="file-tree-scroll" aria-label="主目录文件树" @contextmenu.self.prevent="contextRoot">
    <ul role="tree" aria-label="主目录">
-    <li role="none"><button class="file-tree-row root-row" role="treeitem" aria-level="1" :aria-expanded="rootOpen" :title="tree.root" data-entry-path="" data-kind="folder" @click="rootOpen=!rootOpen;selectedFolder=''" @contextmenu.prevent.stop="contextRoot"><span class="tree-disclosure">{{rootOpen?'▾':'▸'}}</span><span>主目录</span></button>
-     <ul v-if="rootOpen" role="group"><FileTreeNode v-for="entry in filtered" :key="entry.path" :entry="entry" :active-path="activePath" :expanded="visibleExpanded" :level="2" @open="emit('open',$event,false)" @toggle="toggle" @menu="showMenu" /></ul>
+    <li role="none"><button class="file-tree-row root-row" role="treeitem" aria-level="1" :aria-expanded="rootExpanded" :title="tree.root" data-entry-path="" data-kind="folder" @click="rootOpen=!rootExpanded;selectedFolder=''" @contextmenu.prevent.stop="contextRoot"><span class="tree-disclosure">{{rootExpanded?'▾':'▸'}}</span><span>主目录</span></button>
+     <ul v-if="rootExpanded" role="group"><FileTreeNode v-for="entry in filtered" :key="entry.path" :entry="entry" :active-path="activePath" :expanded="visibleExpanded" :level="2" @open="emit('open',$event,false)" @toggle="toggle" @menu="showMenu" /></ul>
     </li>
    </ul>
    <p v-if="loading" class="tree-message">正在读取目录…</p><p v-else-if="loadError" class="tree-message error">{{loadError}}</p><p v-else-if="!filtered.length" class="tree-message">{{search||category!=='all'?'没有匹配的文件':'右键主目录，新建文件或文件夹'}}</p>
