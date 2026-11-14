@@ -38,10 +38,15 @@ type OpenArgs struct {
 
 func jsonBytes(v any) []byte { b, _ := json.Marshal(v); return b }
 func newServer(workspace string) (*mcp.Server, error) {
+	return newServerWithSettings(workspace, workspace)
+}
+
+func newServerWithSettings(workspace, settingsRoot string) (*mcp.Server, error) {
 	service, err := newProjectService(workspace)
 	if err != nil {
 		return nil, err
 	}
+	service.settingsRoot = settingsRoot
 	s := mcp.NewServer(&mcp.Implementation{Name: "ezruantu", Version: "0.2.14"}, &mcp.ServerOptions{Instructions: projectInstructions})
 	mcp.AddTool(s, &mcp.Tool{Name: "get_diagram_schema", Description: "Get the shared JSON Schema for all supported diagram types. All changes must preserve valid references and stable IDs.", Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true}}, func(ctx context.Context, req *mcp.CallToolRequest, args Empty) (*mcp.CallToolResult, any, error) {
 		var schema any
@@ -62,7 +67,14 @@ func newServer(workspace string) (*mcp.Server, error) {
 		return nil, v, nil
 	})
 	mcp.AddTool(s, &mcp.Tool{Name: "render_diagram", Description: "Generate a deterministic layout and SVG without opening the desktop app. Returns SVG and scene geometry; no files are written.", Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true}}, func(ctx context.Context, req *mcp.CallToolRequest, args DiagramArgs) (*mcp.CallToolResult, any, error) {
-		r := core.Render(string(jsonBytes(args.Diagram)))
+		diagram, validation := core.ValidateJSON(jsonBytes(args.Diagram))
+		if !validation.Valid {
+			return nil, nil, fmt.Errorf("%s", validation.Issues[0].Message)
+		}
+		if err := service.applyGlobalStyle(&diagram); err != nil {
+			return nil, nil, err
+		}
+		r := core.Render(string(jsonBytes(diagram)))
 		if !r.Validation.Valid {
 			return nil, nil, fmt.Errorf("%s", r.Validation.Issues[0].Message)
 		}
@@ -82,6 +94,9 @@ func newServer(workspace string) (*mcp.Server, error) {
 		diagram, validation := core.ValidateJSON(jsonBytes(args.Diagram))
 		if !validation.Valid {
 			return nil, nil, fmt.Errorf("%s", validation.Issues[0].Message)
+		}
+		if err := service.applyGlobalStyle(&diagram); err != nil {
+			return nil, nil, err
 		}
 		content, err := exportBytes(ctx, diagram, args.Format)
 		if err != nil {
@@ -163,7 +178,7 @@ func Run(ctx context.Context, args []string, defaultWorkspace string) error {
 	if err = os.MkdirAll(abs, 0755); err != nil {
 		return err
 	}
-	server, err := newServer(abs)
+	server, err := newServerWithSettings(abs, defaultWorkspace)
 	if err != nil {
 		return err
 	}

@@ -63,6 +63,7 @@ test('invalid project import leaves the current project intact',async({page})=>{
 
 test('empty relations and monochrome survive export and reload',async({page})=>{
  await page.goto('/');await expect(page.locator('.x6-node').first()).toBeVisible()
+ await page.locator('.inspector .theme-picker').getByText('论文',{exact:true}).click()
  await page.getByRole('button',{name:'JSON',exact:true}).click();const editor=page.getByRole('textbox',{name:'图表 JSON'});const d=JSON.parse(await editor.inputValue());d.model.relations=[];d.view.theme='mono'
  await editor.fill(JSON.stringify(d));await page.getByRole('button',{name:'校验并应用'}).click();await page.getByRole('button',{name:'画布',exact:true}).click()
  await expect(page.locator('.render-progress')).toHaveCount(0);await expect(page.locator('.canvas-error')).toHaveCount(0)

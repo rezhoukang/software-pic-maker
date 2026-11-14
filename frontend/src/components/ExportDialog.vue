@@ -1,17 +1,15 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { NAlert, NButton, NCheckbox, NCheckboxGroup, NForm, NFormItem, NRadioGroup, NRadioButton, NSelect } from 'naive-ui'
+import { NAlert, NButton, NCheckbox, NCheckboxGroup, NForm, NFormItem, NSelect } from 'naive-ui'
 import AppDialog from './AppDialog.vue'
-import { clone, type Diagram, type WorkspaceEntry, type WorkspaceTree } from '../types'
+import { clone, type Diagram, type DiagramTheme, type WorkspaceEntry, type WorkspaceTree } from '../types'
 import * as bridge from '../bridge'
 
-const props = defineProps<{ show: boolean; current?: Diagram; currentPath: string }>()
+const props = defineProps<{ show: boolean; current?: Diagram; currentPath: string; theme:DiagramTheme }>()
 const emit = defineEmits<{ 'update:show': [value: boolean]; complete: [message: string] }>()
 type Scope = 'current' | 'parent' | 'folder' | 'all'
 const scope = ref<Scope | null>(null)
 const format = ref<bridge.ExportFormat | null>(null)
-const theme = ref('blue')
-const themes = [{ id: 'blue', label: '蓝图', color: '#586fe8' }, { id: 'mono', label: '论文', color: '#343b46' }, { id: 'sage', label: '青绿', color: '#6a8c7c' }]
 const outputs = ref<string[]>(['folder'])
 const tree = ref<WorkspaceTree | null>(null)
 const loading = ref(false), exporting = ref(false), error = ref(''), progress = ref('')
@@ -45,7 +43,6 @@ watch(() => props.show, async show => {
  const token = ++loadToken
  if (!show) return
  scope.value = null; format.value = null; chosenFolder.value = null; outputs.value = ['folder']; error.value = ''; progress.value = ''; tree.value = null; loading.value = true
- theme.value = props.current?.view.theme || 'blue'
  try { const next = await bridge.listWorkspace(); if (token === loadToken) tree.value = next }
  catch (e) { if (token === loadToken) error.value = e instanceof Error ? e.message : String(e) }
  finally { if (token === loadToken) loading.value = false }
@@ -53,7 +50,7 @@ watch(() => props.show, async show => {
 
 async function submit() {
  if (!canExport.value) return
- const chosenFormat = format.value!, chosenTheme = theme.value, files = clone(candidates.value), base = root.value || '', current = props.current ? clone(props.current) : undefined, currentPath = props.currentPath
+ const chosenFormat = format.value!, chosenTheme = props.theme, files = clone(candidates.value), base = root.value || '', current = props.current ? clone(props.current) : undefined, currentPath = props.currentPath
  const folder = outputs.value.includes('folder'), zipped = outputs.value.includes('zip')
  exporting.value = true; error.value = ''; progress.value = ''
  try {
@@ -100,7 +97,6 @@ async function submit() {
    <NFormItem label="导出范围"><NSelect v-model:value="scope" :options="scopeOptions" :theme-overrides="selectTheme" :disabled="exporting" :virtual-scroll="false" placeholder="请选择导出范围" aria-label="导出范围" /></NFormItem>
    <div v-if="scope === 'folder'" class="export-folder-choice"><NButton size="small" :disabled="exporting || loading" @click="folderPicker = true">选择文件夹</NButton><span :title="chosenFolder ?? ''">{{ chosenFolder === null ? '尚未选择' : chosenFolder || '主目录' }}</span></div>
    <NFormItem label="导出形式"><NSelect v-model:value="format" :options="formatOptions" :theme-overrides="selectTheme" :disabled="exporting" :virtual-scroll="false" placeholder="请选择导出形式" aria-label="导出形式" /></NFormItem>
-   <NFormItem label="风格"><NRadioGroup v-model:value="theme" class="theme-picker" size="small" name="export-theme" aria-label="导出风格" :disabled="exporting"><NRadioButton v-for="option in themes" :key="option.id" :value="option.id"><span class="theme-label"><span class="theme-swatch" :style="{ background: option.color }" aria-hidden="true"></span>{{ option.label }}</span></NRadioButton></NRadioGroup></NFormItem>
    <NFormItem v-if="multiple" label="输出方式"><div><NCheckboxGroup v-model:value="outputs" :disabled="exporting"><NCheckbox value="folder">文件夹</NCheckbox><NCheckbox value="zip">ZIP 压缩包</NCheckbox></NCheckboxGroup><p v-if="!outputs.length" class="export-output-error">请至少选择一种输出方式</p></div></NFormItem>
   </NForm>
   <p class="export-summary" aria-live="polite">{{ loading ? '正在读取导出范围…' : progress || (scope === 'folder' && chosenFolder === null ? '请选择要导出的文件夹' : scope ? `共 ${count} 张图${count > 1 ? '，保留目录结构' : ''}` : '请选择导出范围和形式') }}</p>

@@ -1,4 +1,4 @@
-import type { Diagram, Project, RenderResult, Session, WorkspaceTree, WorkspaceDocument } from './types'
+import type { Diagram, DiagramTheme, Project, RenderResult, Session, WorkspaceTree, WorkspaceDocument } from './types'
 import library from '../../shared/library.json'
 import { clone } from './types'
 import { EventsOn } from '../wailsjs/runtime/runtime'
@@ -59,6 +59,15 @@ export async function exportDiagram(d: Diagram, format: string, svg: string): Pr
   const r = await fetch('/api/export?format=' + format, { method: 'POST', body: JSON.stringify(d) }); if (!r.ok) throw new Error(await r.text()); download(await r.text(), d.title + '.' + format, format === 'svg' ? 'image/svg+xml' : format === 'json' ? 'application/json' : 'application/xml'); return 'browser-download'
 }
 export async function environment() { if (desktop()) return api().GetEnvironment(); return { version: '0.2.14', mcp_path: 'EZ软图/EZ软图.exe', data_dir: 'EZ软图/data', mcp_ready: false } }
+export async function loadSettings():Promise<{theme:DiagramTheme}> {
+ if(desktop() && api().GetSettings)return api().GetSettings()
+ const theme=localStorage.getItem('ezruantu-global-theme')
+ return {theme:theme==='mono'||theme==='sage'?theme:'blue'}
+}
+export async function saveGlobalTheme(theme:DiagramTheme):Promise<void> {
+ if(desktop() && api().SetGlobalTheme){await api().SetGlobalTheme(theme);return}
+ localStorage.setItem('ezruantu-global-theme',theme)
+}
 export async function copyText(text: string) { if (desktop()) return api().CopyText(text); return navigator.clipboard.writeText(text) }
 function download(content: string | Uint8Array, name: string, type: string) { const blob = new Blob([content as BlobPart], { type }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000) }
 async function svgToPng(svg: string): Promise<string> {

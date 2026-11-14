@@ -3,6 +3,8 @@ export interface Field { name: string; type?: string; primary?: boolean }
 export interface Item { id: string; name: string; fields?: Field[]; methods?: string[]; shape?: string; role?: string }
 export interface Relation { id: string; source: string; target: string; label?: string; kind?: string; source_cardinality?: string; target_cardinality?: string }
 export type DiagramType = 'er' | 'table' | 'usecase' | 'flowchart' | 'sequence' | 'class' | 'architecture' | 'structure'
+export type DiagramTheme = 'blue' | 'mono' | 'sage'
+export const diagramThemes: { id: DiagramTheme; label: string; color: string }[] = [{ id: 'blue', label: '蓝图', color: '#586fe8' }, { id: 'mono', label: '论文', color: '#343b46' }, { id: 'sage', label: '青绿', color: '#6a8c7c' }]
 export interface Model { entities?: Item[]; actors?: Item[]; use_cases?: Item[]; classes?: Item[]; participants?: Item[]; nodes?: Item[]; relations?: Relation[]; messages?: Relation[]; system_name?: string }
 export interface Diagram { schema_version: string; id: string; type: DiagramType; title: string; description?: string; model: Model; view: { theme: string; direction: string; positions: Record<string, Point> } }
 export interface Project { schema_version: string; name: string; diagrams: Diagram[]; updated_at?: string }

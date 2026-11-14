@@ -12,14 +12,25 @@ import (
 	"ezruantu/internal/core"
 	"ezruantu/internal/exportbundle"
 	"ezruantu/internal/raster"
+	"ezruantu/internal/settings"
 	"ezruantu/internal/workspace"
 )
 
 var diagramTypes = []string{"er", "table", "usecase", "flowchart", "sequence", "class", "architecture", "structure"}
 
 type projectService struct {
-	root  string
-	store *workspace.Store
+	root         string
+	store        *workspace.Store
+	settingsRoot string
+}
+
+func (s *projectService) applyGlobalStyle(diagram *core.Diagram) error {
+	p, err := settings.Load(s.settingsRoot)
+	if err != nil {
+		return err
+	}
+	diagram.View.Theme = p.Theme
+	return nil
 }
 
 func newProjectService(root string) (*projectService, error) {
@@ -30,7 +41,7 @@ func newProjectService(root string) (*projectService, error) {
 	if err = os.MkdirAll(abs, 0755); err != nil {
 		return nil, err
 	}
-	s := &projectService{root: abs, store: workspace.New(abs)}
+	s := &projectService{root: abs, store: workspace.New(abs), settingsRoot: abs}
 	if _, err = s.internalDir(""); err != nil {
 		return nil, err
 	}
@@ -289,12 +300,17 @@ func (s *projectService) export(ctx context.Context, args ExportProjectArgs, pro
 		}
 	}
 	// Read and validate every document before starting image rendering or output.
+	preferences, err := settings.Load(s.settingsRoot)
+	if err != nil {
+		return nil, err
+	}
 	docs := make([]workspace.Document, len(files))
 	for i, f := range files {
 		docs[i], err = s.store.Read(f.Path)
 		if err != nil {
 			return nil, fmt.Errorf("%s：%w", f.Path, err)
 		}
+		docs[i].Diagram.View.Theme = preferences.Theme
 	}
 	prepared, total := []exportbundle.File{}, 0
 	var single []byte
